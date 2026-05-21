@@ -188,7 +188,7 @@ print(f"Prescription map: {result['prescription_path']}")
 ## Repository Structure
 
 ```
-autoweedmap/
+files/autoweedmap/
 ├── README.md
 ├── requirements.txt
 │

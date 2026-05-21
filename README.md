@@ -276,9 +276,9 @@ All experiments run on Google Colab with NVIDIA T4 GPU (16GB VRAM).
 @misc{autoweedmap2025,
   title   = {AutoWeedMap: Zero-Click Weedy Rice Detection and 
               Herbicide Prescription Mapping from Multispectral UAV Imagery},
-  author  = {Your Name},
+  author  = {Shah Md Abul Hasan},
   year    = {2025},
-  url     = {https://github.com/yourusername/autoweedmap}
+  url     = (https://github.com/abulhasan121/AutoWeedMap/)
 }
 ```
 

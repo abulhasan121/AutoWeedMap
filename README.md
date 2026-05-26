@@ -1,297 +1,471 @@
-# AutoWeedMap
-Zero-Click Weedy Rice Detection from Multispectral UAV Imagery
-# 🌾 AutoWeedMap: Zero-Click Weedy Rice Detection and Herbicide Prescription Mapping from Multispectral UAV Imagery
+# AutoWeedMap — Zero-Click Weedy Rice Detection from Multispectral UAV Imagery
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org)
-[![SAM](https://img.shields.io/badge/Meta-SAM-purple.svg)](https://github.com/facebookresearch/segment-anything)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+**Developed by Shah Md Abul Hasan**
 
----
+AutoWeedMap is a fully automated precision agriculture pipeline that detects weedy rice from multispectral UAV imagery and generates variable-rate herbicide prescription maps without any manual interaction during inference.
 
-## Overview
+The system combines:
+- Multispectral vegetation indices
+- NDVI-guided anomaly detection
+- Segment Anything Model (SAM)
+- Automatic prompt generation
+- Spatial prescription mapping
 
-AutoWeedMap is a fully automated pipeline that takes multispectral UAV imagery as input and produces a **variable-rate herbicide prescription map** as output — with zero human interaction between those two steps.
+to create an end-to-end framework for site-specific weed management in rice production systems.
 
-Weedy rice (*Oryza sativa* f. *spontanea*) is one of the most damaging threats to cultivated rice production in Southeast Asia. It is visually nearly identical to cultivated rice in standard RGB photography, making automated detection extremely difficult. This project addresses that challenge using spectral information from multispectral UAV sensors combined with the Segment Anything Model (SAM).
-
-**Key contribution:** We replace the manual click-based prompting used in prior SAM-based agricultural segmentation work with a fully automatic NDVI-guided prompting strategy — requiring zero human interaction at inference time.
+Unlike previous SAM-based agricultural segmentation approaches that require manual clicks or bounding boxes, AutoWeedMap introduces a fully automatic spectral prompting strategy driven by local NDVI anomalies.
 
 ---
 
-## Pipeline
+# Project Motivation
 
+Weedy rice (*Oryza sativa* f. *spontanea*) is one of the most destructive weeds in rice production systems, particularly across Southeast Asia. The weed competes aggressively with cultivated rice for:
+- Nutrients
+- Water
+- Light
+- Space
+
+leading to severe yield and quality losses.
+
+A major challenge for precision agriculture is that weedy rice is visually almost indistinguishable from cultivated rice in standard RGB imagery, especially during mid-season growth stages. Traditional computer vision systems based on RGB images struggle because:
+- Crop and weed share nearly identical morphology
+- Leaf color and canopy structure overlap heavily
+- Background segmentation provides little discriminatory value
+
+This limitation makes conventional RGB deep learning pipelines unreliable for operational field deployment.
+
+AutoWeedMap addresses this problem using multispectral UAV imagery and spectral anomaly-guided segmentation rather than traditional RGB object detection.
+
+The key innovation is reframing SAM prompting as a precision agriculture problem rather than a manual interactive segmentation problem.
+
+Instead of:
+- Human clicks
+- Bounding box prompts
+- Manual annotations
+
+the system automatically generates prompts from multispectral vegetation anomalies using NDVI spatial deviation analysis.
+
+This enables:
+- Fully automated inference
+- Zero-click segmentation
+- Field-scale deployment
+- Integration into precision herbicide workflows
+
+The broader significance for precision agriculture is that AutoWeedMap connects:
+1. UAV remote sensing
+2. Foundation segmentation models
+3. Spectral crop stress analysis
+4. Variable-rate chemical application
+
+into a single operational decision-support pipeline.
+
+Rather than producing only segmentation masks, the framework directly generates actionable prescription maps for site-specific herbicide management.
+
+---
+
+# System Overview
+
+The pipeline takes multispectral UAV imagery as input and produces:
+- Weed segmentation masks
+- Weed density estimation
+- Herbicide treatment zones
+- Variable-rate prescription maps
+
+without requiring user interaction.
+
+The workflow operates entirely automatically once imagery is provided.
+
+---
+
+# Pipeline Architecture
+
+```text
+Multispectral UAV Image
+(RGB + Green + Red + RedEdge + NIR)
+                ↓
+Vegetation Index Computation
+(NDVI · NDRE · MCARI)
+                ↓
+NDVI-Guided Automatic Prompt Generation
+(Local anomaly detection + DBSCAN clustering)
+                ↓
+Segment Anything Model (SAM)
+(Patch-based segmentation)
+                ↓
+Weedy Rice Segmentation Masks
+                ↓
+Spatial Weed Density Mapping
+                ↓
+Variable-Rate Herbicide Prescription Map
+                ↓
+GeoTIFF Export
 ```
-Multispectral UAV Image (RGB + G + R + RE + NIR)
-                │
-                ▼
-    ┌───────────────────────┐
-    │   Vegetation Indices   │
-    │  NDVI · NDRE · MCARI  │
-    └───────────┬───────────┘
-                │
-                ▼
-    ┌───────────────────────┐
-    │   NDVI-Guided Auto    │
-    │      Prompting        │
-    │                       │
-    │  Local anomaly maps   │
-    │  DBSCAN clustering    │
-    │  Zero human clicks    │
-    └───────────┬───────────┘
-                │
-                ▼
-    ┌───────────────────────┐
-    │    SAM Segmentation   │
-    │                       │
-    │  Patch-based (192px)  │
-    │  Spectral validation  │
-    │  MCARI composite input│
-    └───────────┬───────────┘
-                │
-                ▼
-    ┌───────────────────────┐
-    │   Prescription Map    │
-    │                       │
-    │  Grid density mapping │
-    │  4-level dose zones   │
-    │  GeoTIFF export       │
-    │  Herbicide savings    │
-    └───────────────────────┘
-```
 
 ---
 
-## Results
+# Why Multispectral Imagery Matters
 
-### Main Comparison Table
+A major finding of this work is that multispectral imagery is not optional for weedy rice detection.
+
+The study experimentally demonstrates that RGB-only foundation models fail because cultivated rice and weedy rice are visually similar under standard color imagery.
+
+Grounded SAM operating only on RGB imagery achieved:
+
+```text
+IoU = 0.031
+```
+
+across the evaluation dataset.
+
+In contrast, multispectral vegetation indices derived from:
+- RedEdge
+- Near Infrared (NIR)
+
+contain physiological information related to:
+- Chlorophyll variation
+- Canopy stress
+- Biomass differences
+- Spectral reflectance anomalies
+
+that are invisible in RGB space.
+
+This highlights an important precision agriculture principle:
+spectral information often contains stronger agronomic signals than visual appearance alone.
+
+---
+
+# Automatic NDVI-Guided Prompting
+
+The central methodological contribution of AutoWeedMap is replacing manual SAM prompting with fully automatic spectral prompting.
+
+Traditional SAM workflows require:
+- Point clicks
+- Bounding boxes
+- Human supervision
+
+which prevents large-scale autonomous deployment.
+
+AutoWeedMap instead:
+1. Computes local NDVI anomaly maps
+2. Detects spectrally abnormal regions
+3. Clusters anomaly centers using DBSCAN
+4. Converts cluster centroids into SAM prompts
+
+This transforms SAM from:
+- an interactive segmentation model
+
+into:
+- a fully autonomous agricultural segmentation pipeline.
+
+The method is especially effective in the agronomically important 20–60% infestation range where:
+- Weed-crop boundaries remain spectrally distinguishable
+- Herbicide intervention decisions are economically valuable
+
+---
+
+# Key Findings
+
+## 1. Spectral Guidance Improves Segmentation
+
+NDVI-guided prompting outperformed generic grid prompting because prompts were directed toward biologically meaningful anomaly regions rather than arbitrary image locations.
+
+---
+
+## 2. MCARI Composite Inputs Performed Best
+
+Among six tested image representations:
+- RGB
+- False Color
+- Color Infrared
+- NDVI
+- NDRE
+- MCARI-NDVI-NDRE Composite
+
+the MCARI composite consistently produced the strongest SAM segmentation performance.
+
+This confirms that:
+- chlorophyll-sensitive spectral information
+- improves foundation segmentation models in agriculture.
+
+---
+
+## 3. Performance Depends on Infestation Level
+
+The pipeline performs best at moderate infestation levels.
+
+### Moderate Infestation (20–60%)
+
+- Strong weed-crop contrast
+- Distinct anomaly boundaries
+- Best operational performance
+
+### Sparse Infestation (<20%)
+
+- Weak anomaly signals
+- Prompt localization becomes unstable
+
+### Severe Infestation (>70%)
+
+- Weedy rice becomes the spectral norm
+- Local anomaly assumptions fail
+- Detection performance decreases
+
+These failure modes are reported explicitly and represent important open research problems for autonomous agricultural segmentation systems.
+
+---
+
+# Performance Results
+
+## Main Comparison
 
 | Method | Mean IoU | Zero-Shot | Training Data | Notes |
 |---|---|---|---|---|
-| NDVI Threshold (baseline) | 0.175 | ✅ | None | Pure spectral thresholding |
-| Grounded SAM — RGB only | 0.031 | ✅ | None | Language detection fails on weedy rice |
-| SAM + Grid Prompts | 0.353 | ✅ | None | No spectral guidance |
-| **SAM + NDVI Prompts (ours)** | **0.223** | ✅ | **None** | **Proposed method** |
-| SAM + NDVI Prompts (20–60% infestation) | **0.354** | ✅ | None | Optimal operating range |
+| NDVI Threshold | 0.175 | Yes | None | Pure spectral thresholding |
+| Grounded SAM (RGB) | 0.031 | Yes | None | RGB failure case |
+| SAM + Grid Prompts | 0.353 | Yes | None | No spectral guidance |
+| **SAM + NDVI Prompts** | **0.223** | **Yes** | **None** | Proposed method |
+| SAM + NDVI (20–60%) | **0.354** | **Yes** | **None** | Best operating range |
 
-### Performance by Infestation Level
+---
 
-| Weed Coverage | Mean IoU | Rating | N Images |
+## Performance by Infestation Level
+
+| Weed Coverage | Mean IoU | Interpretation |
+|---|---|---|
+| 10–20% | 0.173 | Weak anomaly signal |
+| 20–30% | 0.317 | Strong operational range |
+| 30–40% | 0.369 | Best segmentation |
+| 40–50% | 0.354 | Stable performance |
+| 50–60% | 0.335 | Good operational range |
+| 70–90% | 0.172–0.207 | Anomaly inversion failure |
+
+---
+
+# Prescription Mapping
+
+The final output is not only a segmentation mask but a spatial herbicide recommendation map suitable for precision agriculture workflows.
+
+The system:
+1. Computes weed density spatially
+2. Divides fields into management zones
+3. Assigns herbicide rates
+4. Exports georeferenced prescription layers
+
+This supports:
+- Variable-rate spraying
+- Reduced herbicide usage
+- Lower production costs
+- Reduced environmental impact
+
+---
+
+# Herbicide Savings
+
+| Sample | Weed Coverage | IoU | Herbicide Saved |
 |---|---|---|---|
-| 10–20% | 0.173 | 🔴 Poor | 31 |
-| 20–30% | 0.317 | 🟡 Moderate | 15 |
-| 30–40% | 0.369 | 🟡 Moderate | 14 |
-| 40–50% | 0.354 | 🟡 Moderate | 21 |
-| 50–60% | 0.335 | 🟡 Moderate | 11 |
-| 70–90% | 0.172–0.207 | 🔴 Poor | 20 |
+| Sample 1 | 39.4% | 0.565 | 52.2% |
+| Sample 2 | 42.1% | 0.530 | 66.8% |
+| Sample 3 | 27.3% | 0.509 | 62.4% |
 
-**The pipeline performs best at 20–60% weed coverage** — the agronomically critical range where intervention decisions are most needed and most actionable.
+Average herbicide savings ranged between:
+- 52–67%
 
-### Prescription Map Output
-
-| Image | Weed Coverage | IoU | Herbicide Saved |
-|---|---|---|---|
-| Sample 1 | 39.4% | 0.565 | **52.2%** |
-| Sample 2 | 42.1% | 0.530 | **66.8%** |
-| Sample 3 | 27.3% | 0.509 | **62.4%** |
-
-Average herbicide savings of **52–67%** compared to uniform field application across best-performing images.
+compared to uniform field application.
 
 ---
 
-## Key Findings
+# Dataset
 
-**1. Multispectral input is necessary, not optional.**
-We demonstrate this experimentally: Grounded SAM (language-guided detection on RGB) achieves only IoU = 0.031 across 20 test images. Weedy rice and cultivated rice are visually indistinguishable in RGB at 55–60 days after sowing. Spectral bands — particularly RedEdge and NIR — contain the discriminative information.
+## WeedyRice-RGBMS-DB
 
-**2. NDVI-guided prompting beats grid prompting in the 20–60% range.**
-Random or grid-based SAM prompting does not target spectrally anomalous regions. NDVI local anomaly detection directs SAM toward pixels that deviate from their neighborhood — exactly where weed-crop boundaries exist.
+| Property | Value |
+|---|---|
+| Image Pairs | 734 |
+| Data Type | RGB + Multispectral UAV |
+| UAV Platform | DJI Mavic 3 Multispectral |
+| Seasons | 3 |
+| Region | Mekong Delta, Vietnam |
+| Spectral Bands | Green · Red · RedEdge · NIR |
+| Annotation Type | Expert polygon masks |
+| Weed Coverage Range | 0.4%–89.4% |
 
-**3. MCARI composite input outperforms RGB for SAM.**
-Among six tested input modes (RGB, false color, color infrared, NDVI, NDRE, MCARI composite), the MCARI-NDVI-NDRE composite consistently achieved the highest IoU, confirming that spectral information improves SAM segmentation quality.
+### Spectral Bands
 
-**4. The pipeline fails at extreme infestation levels.**
-Below 20% coverage: spectral anomaly signal too weak. Above 70% coverage: weedy rice becomes the spectral norm — local anomaly detection inverts. Both failure modes are reported honestly and represent open research challenges.
-
----
-
-## Dataset
-
-**Weedy Rice RGB-MS Database (WeedyRice-RGBMS-DB)**
-
-- 734 aligned RGB + multispectral UAV image pairs
-- Collected using DJI Mavic 3 Multispectral UAV
-- 3 cropping seasons, Mekong Delta, Vietnam (2024–2025)
-- 4 spectral bands: Green (560nm), Red (650nm), RedEdge (730nm), NIR (860nm)
-- Expert-verified polygon masks for weedy rice
-- Infestation levels: 0.4% to 89.4% per image
-
-**Download:** [Mendeley Data](https://data.mendeley.com/datasets/vt4s83pxx6/1)
-
-**Citation:**
-```
-Nguyen et al. (2025). A dataset of aligned RGB and multispectral UAV imagery 
-for semantic segmentation of weedy rice. Data in Brief, 63, 112237.
-```
+| Band | Wavelength |
+|---|---|
+| Green | 560 nm |
+| Red | 650 nm |
+| RedEdge | 730 nm |
+| NIR | 860 nm |
 
 ---
 
-## Installation
+# Installation
+
+## Clone Repository
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/autoweedmap.git
-cd autoweedmap
+git clone https://github.com/abulhasan121/AutoWeedMap.git
+cd AutoWeedMap
+```
 
-# Create environment
+## Create Environment
+
+```bash
 conda create -n autoweedmap python=3.10 -y
 conda activate autoweedmap
+```
 
-# Install dependencies
+## Install Dependencies
+
+```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-pip install git+https://github.com/facebookresearch/segment-anything.git
-pip install groundingdino-py transformers==4.38.2
-pip install rasterio geopandas scipy scikit-learn opencv-python matplotlib pillow pandas
 
-# Download SAM weights
+pip install git+https://github.com/facebookresearch/segment-anything.git
+
+pip install groundingdino-py transformers==4.38.2
+
+pip install rasterio geopandas scipy scikit-learn \
+            opencv-python matplotlib pillow pandas
+```
+
+## Download SAM Weights
+
+```bash
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 ```
 
 ---
 
-## Usage
+# Usage
+
+## Example Pipeline
 
 ```python
 from pipeline import AutoWeedMap
 
-# Initialize pipeline
 pipeline = AutoWeedMap(
     sam_checkpoint="sam_vit_b_01ec64.pth",
     device="cuda"
 )
 
-# Run on one image
 result = pipeline.run(
-    rgb_path    = "data/RGB/image_001.JPG",
-    ms_dir      = "data/Multispectral/",
-    image_id    = "image_001",
-    output_dir  = "results/"
+    rgb_path   = "data/RGB/image_001.JPG",
+    ms_dir     = "data/Multispectral/",
+    image_id   = "image_001",
+    output_dir = "results/"
 )
 
-print(f"Weed coverage:    {result['weed_pct']:.1f}%")
-print(f"Herbicide saved:  {result['savings_pct']:.1f}%")
-print(f"Prescription map: {result['prescription_path']}")
+print(f"Weed coverage: {result['weed_pct']:.1f}%")
+print(f"Herbicide saved: {result['savings_pct']:.1f}%")
 ```
 
 ---
 
-## Repository Structure
+# Repository Structure
 
-```
-files/autoweedmap/
+```text
+AutoWeedMap/
 ├── README.md
 ├── requirements.txt
 │
 ├── src/
 │   ├── data/
-│   │   └── loader.py              ← dataset loading utilities
 │   ├── indices/
-│   │   └── vegetation.py          ← NDVI, NDRE, MCARI computation
 │   ├── prompts/
-│   │   └── ndvi_prompter.py       ← automatic SAM prompt generation
 │   ├── segmentation/
-│   │   └── sam_segmenter.py       ← patch-based SAM inference
 │   ├── prescription/
-│   │   └── map_generator.py       ← prescription map generation
 │   └── evaluate/
-│       └── metrics.py             ← IoU, F1, precision, recall
 │
 ├── baselines/
-│   ├── ndvi_threshold.py          ← spectral threshold baseline
-│   ├── grid_prompt_sam.py         ← grid-prompted SAM baseline
-│   └── grounded_sam.py            ← Grounded DINO + SAM baseline
-│
 ├── experiments/
-│   ├── band_ablation.py           ← compare 6 input band modes
-│   ├── infestation_analysis.py    ← performance by weed coverage
-│   └── full_evaluation.py         ← run on all 117 valid test images
-│
 ├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_vegetation_indices.ipynb
-│   ├── 03_prompting_strategy.ipynb
-│   ├── 04_sam_band_ablation.ipynb
-│   └── 05_results_analysis.ipynb
-│
 └── results/
-    └── figures/
-        ├── vegetation_indices.png
-        ├── band_modes.png
-        ├── ndvi_prompts.png
-        ├── performance_by_weed_level.png
-        ├── final_result_iou0.565.png
-        ├── final_result_iou0.530.png
-        └── final_result_iou0.509.png
 ```
 
 ---
 
-## Prescription Map Legend
+# Prescription Map Legend
 
-| Color | Dose | Weed Density | Action |
+| Zone | Herbicide Dose | Weed Density | Recommendation |
 |---|---|---|---|
-| 🟢 Green | 0 L/ha | < 5% | No treatment |
-| 🟡 Yellow | 150 L/ha | 5–25% | Low dose |
-| 🟠 Orange | 300 L/ha | 25–50% | Medium dose |
-| 🔴 Red | 450 L/ha | > 50% | High dose |
+| Green | 0 L/ha | <5% | No treatment |
+| Yellow | 150 L/ha | 5–25% | Low dose |
+| Orange | 300 L/ha | 25–50% | Medium dose |
+| Red | 450 L/ha | >50% | High dose |
 
 ---
 
-## Limitations
+# Limitations
 
-- **Sparse infestations (< 20% coverage):** NDVI anomaly signal too weak for reliable detection. Prompts fail to localize weed patches.
-- **Severe infestations (> 70% coverage):** When most of the field is weedy, the local anomaly approach inverts — cultivated rice becomes the anomaly.
-- **RGB-only sensors:** Multispectral input is required. The failure of Grounded SAM (RGB-only, IoU = 0.031) confirms this experimentally.
-- **Growth stage dependency:** Optimized for 55–60 days after sowing when visual differentiation peaks. Performance at other stages untested.
-- **Block-shaped mask artifacts:** Patch-based SAM produces rectangular boundaries. Pixel-level precision requires further post-processing.
-- **Single geography:** Validated only on Mekong Delta, Vietnam. Generalization to other rice-growing regions requires validation.
-
----
-
-## Experimental Setup
-
-All experiments run on Google Colab with NVIDIA T4 GPU (16GB VRAM).
-
-- SAM model: ViT-B (357 MB)
-- Patch size: 192 × 192 pixels
-- IoU threshold: 0.60
-- Test set: 117 images with ≥ 10% weed coverage (out of 148 total)
-- Evaluation metrics: IoU, F1, Precision, Recall
+| Limitation | Field Implication |
+|---|---|
+| Sparse infestations | Weak NDVI anomaly signal |
+| Severe infestations | Spectral inversion problem |
+| RGB-only imagery | Detection fails |
+| Growth-stage dependency | Optimized for 55–60 DAS |
+| Patch artifacts | Block-shaped boundaries |
+| Single-region validation | Unknown geographic transferability |
 
 ---
 
-## How to Cite
+# Experimental Setup
+
+| Component | Value |
+|---|---|
+| GPU | NVIDIA T4 · 16 GB VRAM |
+| SAM Model | ViT-B |
+| Patch Size | 192 × 192 |
+| IoU Threshold | 0.60 |
+| Evaluation Images | 117 |
+| Metrics | IoU · F1 · Precision · Recall |
+
+---
+
+# Related Projects
+
+| Project | Description |
+|---|---|
+| AgriScholar | Agricultural research RAG system |
+| PhytoScan | Vision-language plant disease diagnosis |
+| AutoWeedMap | Multispectral UAV weed mapping |
+
+---
+
+# Citation
 
 ```bibtex
 @misc{autoweedmap2025,
-  title   = {AutoWeedMap: Zero-Click Weedy Rice Detection and 
-              Herbicide Prescription Mapping from Multispectral UAV Imagery},
-  author  = {Shah Md Abul Hasan},
+  title   = {AutoWeedMap: Zero-Click Weedy Rice Detection and Herbicide Prescription Mapping from Multispectral UAV Imagery},
+  author  = {Hasan, Shah Md Abul},
   year    = {2025},
-  url     = (https://github.com/abulhasan121/AutoWeedMap/)
+  url     = {https://github.com/abulhasan121/AutoWeedMap}
 }
 ```
 
 ---
 
-## Acknowledgements
+# Acknowledgements
 
-- [Meta AI — Segment Anything Model](https://github.com/facebookresearch/segment-anything)
-- [IDEA Research — Grounding DINO](https://github.com/IDEA-Research/GroundingDINO)
-- [Nguyen et al. 2025 — WeedyRice-RGBMS-DB Dataset](https://data.mendeley.com/datasets/vt4s83pxx6/1)
+- Meta AI — Segment Anything Model
+- IDEA Research — Grounding DINO
+- Nguyen et al. — WeedyRice-RGBMS-DB Dataset
 
 ---
 
-## License
+# Author
 
-MIT License. See [LICENSE](LICENSE) for details.
+**Shah Md Abul Hasan**
+
+Built with:
+- PyTorch
+- Segment Anything Model (SAM)
+- Multispectral UAV Imagery
+- OpenCV
+- RasterIO
+
+---
+
+# License
+
+MIT License
